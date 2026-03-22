@@ -1,8 +1,10 @@
 # Aseprite Sprite Sheet Splitter
 
+[English Version](README_EN.md) | [中文说明](README.md)
+
 一个强大且精确到像素的 Aseprite 插件，用于将精灵图表（Sprite Sheet）切分为独立的元素。支持实时预览、4 向外边距设置以及多种导出模式。
 
-![Example Preview](example.png)
+![New Interface Preview](SpriteSheetSplitterPic.png)
 
 ## ✨ 插件特色
 
