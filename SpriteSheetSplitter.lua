@@ -300,7 +300,7 @@ dialog:number{ id="cols", text="9", onchange=function()
     updateTargetN(dialog)
 end }
 
-dialog:separator{ text="Outer Margins (T/L/B/R)" }
+dialog:separator{ text="Outer Margins (Top/Leading/Botton/Trailing)" }
 dialog:number{ id="m_top", text="0", onchange=function() updatePreview(dialog) end }
 dialog:number{ id="m_left", text="0", onchange=function() updatePreview(dialog) end }
 dialog:number{ id="m_bottom", text="0", onchange=function() updatePreview(dialog) end }
