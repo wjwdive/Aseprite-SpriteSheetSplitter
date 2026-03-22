@@ -291,24 +291,24 @@ local dialog = Dialog{ title="Sprite Sheet Splitter", onclose=cleanupPreview }
 local preset_names = {}
 for i, p in ipairs(presets) do preset_names[i] = p.name end
 
-dialog:number{ id="rows", label="Rows:", text="5", onchange=function() 
+dialog:number{ id="rows", label="Rows/Cols:", text="5", onchange=function() 
     updatePreview(dialog)
     updateTargetN(dialog)
 end }
-dialog:number{ id="cols", label="Cols:", text="9", onchange=function() 
+dialog:number{ id="cols", text="9", onchange=function() 
     updatePreview(dialog)
     updateTargetN(dialog)
 end }
 
-dialog:separator{ text="Outer Margins" }
-dialog:number{ id="m_top", label="Top:", text="0", onchange=function() updatePreview(dialog) end }
-dialog:number{ id="m_left", label="Leading:", text="0", onchange=function() updatePreview(dialog) end }
-dialog:number{ id="m_bottom", label="Bottom:", text="0", onchange=function() updatePreview(dialog) end }
-dialog:number{ id="m_right", label="Trailing:", text="0", onchange=function() updatePreview(dialog) end }
+dialog:separator{ text="Outer Margins (T/L/B/R)" }
+dialog:number{ id="m_top", text="0", onchange=function() updatePreview(dialog) end }
+dialog:number{ id="m_left", text="0", onchange=function() updatePreview(dialog) end }
+dialog:number{ id="m_bottom", text="0", onchange=function() updatePreview(dialog) end }
+dialog:number{ id="m_right", text="0", onchange=function() updatePreview(dialog) end }
 
-dialog:separator{ text="Inner Spacing" }
-dialog:number{ id="gap_x", label="Spacing X:", text="0", onchange=function() updatePreview(dialog) end }
-dialog:number{ id="gap_y", label="Spacing Y:", text="0", onchange=function() updatePreview(dialog) end }
+dialog:separator{ text="Inner Spacing (X/Y)" }
+dialog:number{ id="gap_x", text="0", onchange=function() updatePreview(dialog) end }
+dialog:number{ id="gap_y", text="0", onchange=function() updatePreview(dialog) end }
 
 dialog:separator{ text="Preview Color" }
 dialog:combobox{ id="preset", label="Presets:", options=preset_names, 
@@ -323,7 +323,7 @@ dialog:combobox{ id="preset", label="Presets:", options=preset_names,
         updatePreview(dialog)
     end 
 }
-dialog:color{ id="line_color", label="Color Pick:", color=presets[1].color, 
+dialog:color{ id="line_color", color=presets[1].color, 
     onchange=function() updatePreview(dialog) end 
 }
 
@@ -335,26 +335,26 @@ dialog:check{ id="export_files", label="Export Individual Files", selected=true,
         dialog:modify{ id="outdir", visible=v }
     end 
 }
-dialog:entry{ id="prefix", label="  File Prefix:", text="", visible=true }
-dialog:file{ id="outdir", label="  Output Dir:", save=false, filename=spr.filename:match("(.*[/\\])"), visible=true }
+dialog:entry{ id="prefix", label="  Prefix:", text="", visible=true }
+dialog:file{ id="outdir", label="  OutDir:", save=false, filename=spr.filename:match("(.*[/\\])"), visible=true }
 
-dialog:check{ id="merge_new", label="Merge into New Sprite Sheet", selected=false, 
+dialog:check{ id="merge_new", label="Merge Sheet", selected=false, 
     onchange=function()
         local v = dialog.data.merge_new
         dialog:modify{ id="new_rows", visible=v }
         dialog:modify{ id="new_cols", visible=v }
     end 
 }
-dialog:number{ id="new_rows", label="  M Rows:", text="1", visible=false }
-dialog:number{ id="new_cols", label="  N Cols:", text="45", visible=false }
+dialog:number{ id="new_rows", label="  M/N:", text="1", visible=false }
+dialog:number{ id="new_cols", text="45", visible=false }
 
-dialog:check{ id="export_animation", label="Export as Animation Frames", selected=false }
+dialog:check{ id="export_animation", label="Export Anim Frames", selected=false }
 
-dialog:separator{ text="Range (for Merge/Animation)" }
-dialog:number{ id="range_from", label="  From Frame:", text="1" }
-dialog:number{ id="range_end", label="  End Frame:", text="45" }
+dialog:separator{ text="Range (From/End)" }
+dialog:number{ id="range_from", text="1" }
+dialog:number{ id="range_end", text="45" }
 
-dialog:separator{ text="Common" }
+dialog:separator()
 dialog:check{ id="trim", label="Trim Transparent Borders", selected=true }
 
 dialog:button{ text="Split and Export", onclick=function() 
