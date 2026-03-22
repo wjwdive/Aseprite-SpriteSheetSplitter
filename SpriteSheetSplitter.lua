@@ -34,6 +34,7 @@ local function updateTargetN(dialog)
     local cols = data.cols or 1
     local total = rows * cols
     dialog:modify{ id="new_cols", text=tostring(total) }
+    dialog:modify{ id="range_end", text=tostring(total) }
 end
 
 local function updatePreview(dialog)
@@ -136,9 +137,10 @@ local function executeExport(data)
     local trim = data.trim
     local prefix = data.prefix
     local outdir = data.outdir
-    local export_files = data.export_files
     local merge_new = data.merge_new
     local export_animation = data.export_animation
+    local range_from = tonumber(data.range_from) or 1
+    local range_to = tonumber(data.range_end) or (rows * cols)
     local target_rows = tonumber(data.new_rows) or 1
     local target_cols = tonumber(data.new_cols) or (rows * cols)
     
@@ -163,38 +165,44 @@ local function executeExport(data)
     local sprites_list = {}
 
     app.transaction(function()
+        local current_index = 0
         for r = 0, rows - 1 do
             for c = 0, cols - 1 do
-                local x = m_left + c * (sprite_w + gap_x)
-                local y = m_top + r * (sprite_h + gap_y)
+                current_index = current_index + 1
                 
-                -- Create a new sprite for each piece
-                local new_spr = Sprite(sprite_w, sprite_h, spr.colorMode)
-                new_spr:setPalette(spr.palettes[1])
-                
-                -- Copy pixels from original sprite
-                local target_img = new_spr.cels[1].image
-                target_img:drawImage(spr.cels[1].image, -x, -y)
-                
-                -- Handle Trim
-                if trim then
-                    app.activeSprite = new_spr
-                    app.command.AutocropSprite()
-                end
-                
-                if merge_new or export_animation then
-                    table.insert(sprites_list, new_spr)
-                end
+                -- Skip if out of range
+                if current_index >= range_from and current_index <= range_to then
+                    local x = m_left + c * (sprite_w + gap_x)
+                    local y = m_top + r * (sprite_h + gap_y)
+                    
+                    -- Create a new sprite for each piece
+                    local new_spr = Sprite(sprite_w, sprite_h, spr.colorMode)
+                    new_spr:setPalette(spr.palettes[1])
+                    
+                    -- Copy pixels from original sprite
+                    local target_img = new_spr.cels[1].image
+                    target_img:drawImage(spr.cels[1].image, -x, -y)
+                    
+                    -- Handle Trim
+                    if trim then
+                        app.activeSprite = new_spr
+                        app.command.AutocropSprite()
+                    end
+                    
+                    if merge_new or export_animation then
+                        table.insert(sprites_list, new_spr)
+                    end
 
-                -- Save the new sprite
-                if export_files then
-                    local filename = string.format("%s%d_%d.png", prefix, r + 1, c + 1)
-                    local full_path = outdir .. "/" .. filename
-                    new_spr:saveAs(full_path)
-                end
+                    -- Save the new sprite
+                    if export_files then
+                        local filename = string.format("%s%d_%d.png", prefix, r + 1, c + 1)
+                        local full_path = outdir .. "/" .. filename
+                        new_spr:saveAs(full_path)
+                    end
 
-                if not (merge_new or export_animation) then
-                    new_spr:close()
+                    if not (merge_new or export_animation) then
+                        new_spr:close()
+                    end
                 end
             end
         end
@@ -283,24 +291,24 @@ local dialog = Dialog{ title="Sprite Sheet Splitter", onclose=cleanupPreview }
 local preset_names = {}
 for i, p in ipairs(presets) do preset_names[i] = p.name end
 
-dialog:number{ id="rows", label="Rows:", text="5", onchange=function() 
+dialog:number{ id="rows", label="Rows/Cols:", text="5", onchange=function() 
     updatePreview(dialog)
     updateTargetN(dialog)
 end }
-dialog:number{ id="cols", label="Cols:", text="9", onchange=function() 
+dialog:number{ id="cols", text="9", onchange=function() 
     updatePreview(dialog)
     updateTargetN(dialog)
 end }
 
-dialog:separator{ text="Outer Margins" }
-dialog:number{ id="m_top", label="Top:", text="0", onchange=function() updatePreview(dialog) end }
-dialog:number{ id="m_left", label="Leading:", text="0", onchange=function() updatePreview(dialog) end }
-dialog:number{ id="m_bottom", label="Bottom:", text="0", onchange=function() updatePreview(dialog) end }
-dialog:number{ id="m_right", label="Trailing:", text="0", onchange=function() updatePreview(dialog) end }
+dialog:separator{ text="Outer Margins (Top/Leading/Botton/Trailing)" }
+dialog:number{ id="m_top", text="0", onchange=function() updatePreview(dialog) end }
+dialog:number{ id="m_left", text="0", onchange=function() updatePreview(dialog) end }
+dialog:number{ id="m_bottom", text="0", onchange=function() updatePreview(dialog) end }
+dialog:number{ id="m_right", text="0", onchange=function() updatePreview(dialog) end }
 
-dialog:separator{ text="Inner Spacing" }
-dialog:number{ id="gap_x", label="Spacing X:", text="0", onchange=function() updatePreview(dialog) end }
-dialog:number{ id="gap_y", label="Spacing Y:", text="0", onchange=function() updatePreview(dialog) end }
+dialog:separator{ text="Inner Spacing (X/Y)" }
+dialog:number{ id="gap_x", text="0", onchange=function() updatePreview(dialog) end }
+dialog:number{ id="gap_y", text="0", onchange=function() updatePreview(dialog) end }
 
 dialog:separator{ text="Preview Color" }
 dialog:combobox{ id="preset", label="Presets:", options=preset_names, 
@@ -315,7 +323,7 @@ dialog:combobox{ id="preset", label="Presets:", options=preset_names,
         updatePreview(dialog)
     end 
 }
-dialog:color{ id="line_color", label="Color Pick:", color=presets[1].color, 
+dialog:color{ id="line_color", color=presets[1].color, 
     onchange=function() updatePreview(dialog) end 
 }
 
@@ -327,22 +335,26 @@ dialog:check{ id="export_files", label="Export Individual Files", selected=true,
         dialog:modify{ id="outdir", visible=v }
     end 
 }
-dialog:entry{ id="prefix", label="  File Prefix:", text="", visible=true }
-dialog:file{ id="outdir", label="  Output Dir:", save=false, filename=spr.filename:match("(.*[/\\])"), visible=true }
+dialog:entry{ id="prefix", label="  Prefix:", text="", visible=true }
+dialog:file{ id="outdir", label="  OutDir:", save=false, filename=spr.filename:match("(.*[/\\])"), visible=true }
 
-dialog:check{ id="merge_new", label="Merge into New Sprite Sheet", selected=false, 
+dialog:check{ id="merge_new", label="Merge Sheet", selected=false, 
     onchange=function()
         local v = dialog.data.merge_new
         dialog:modify{ id="new_rows", visible=v }
         dialog:modify{ id="new_cols", visible=v }
     end 
 }
-dialog:number{ id="new_rows", label="  M Rows:", text="1", visible=false }
-dialog:number{ id="new_cols", label="  N Cols:", text="45", visible=false }
+dialog:number{ id="new_rows", label="  M/N:", text="1", visible=false }
+dialog:number{ id="new_cols", text="45", visible=false }
 
-dialog:check{ id="export_animation", label="Export as Animation Frames", selected=false }
+dialog:check{ id="export_animation", label="Export Anim Frames", selected=false }
 
-dialog:separator{ text="Common" }
+dialog:separator{ text="Range (From/End)" }
+dialog:number{ id="range_from", text="1" }
+dialog:number{ id="range_end", text="45" }
+
+dialog:separator()
 dialog:check{ id="trim", label="Trim Transparent Borders", selected=true }
 
 dialog:button{ text="Split and Export", onclick=function() 
