@@ -34,6 +34,7 @@ local function updateTargetN(dialog)
     local cols = data.cols or 1
     local total = rows * cols
     dialog:modify{ id="new_cols", text=tostring(total) }
+    dialog:modify{ id="range_end", text=tostring(total) }
 end
 
 local function updatePreview(dialog)
@@ -136,9 +137,10 @@ local function executeExport(data)
     local trim = data.trim
     local prefix = data.prefix
     local outdir = data.outdir
-    local export_files = data.export_files
     local merge_new = data.merge_new
     local export_animation = data.export_animation
+    local range_from = tonumber(data.range_from) or 1
+    local range_to = tonumber(data.range_end) or (rows * cols)
     local target_rows = tonumber(data.new_rows) or 1
     local target_cols = tonumber(data.new_cols) or (rows * cols)
     
@@ -163,38 +165,44 @@ local function executeExport(data)
     local sprites_list = {}
 
     app.transaction(function()
+        local current_index = 0
         for r = 0, rows - 1 do
             for c = 0, cols - 1 do
-                local x = m_left + c * (sprite_w + gap_x)
-                local y = m_top + r * (sprite_h + gap_y)
+                current_index = current_index + 1
                 
-                -- Create a new sprite for each piece
-                local new_spr = Sprite(sprite_w, sprite_h, spr.colorMode)
-                new_spr:setPalette(spr.palettes[1])
-                
-                -- Copy pixels from original sprite
-                local target_img = new_spr.cels[1].image
-                target_img:drawImage(spr.cels[1].image, -x, -y)
-                
-                -- Handle Trim
-                if trim then
-                    app.activeSprite = new_spr
-                    app.command.AutocropSprite()
-                end
-                
-                if merge_new or export_animation then
-                    table.insert(sprites_list, new_spr)
-                end
+                -- Skip if out of range
+                if current_index >= range_from and current_index <= range_to then
+                    local x = m_left + c * (sprite_w + gap_x)
+                    local y = m_top + r * (sprite_h + gap_y)
+                    
+                    -- Create a new sprite for each piece
+                    local new_spr = Sprite(sprite_w, sprite_h, spr.colorMode)
+                    new_spr:setPalette(spr.palettes[1])
+                    
+                    -- Copy pixels from original sprite
+                    local target_img = new_spr.cels[1].image
+                    target_img:drawImage(spr.cels[1].image, -x, -y)
+                    
+                    -- Handle Trim
+                    if trim then
+                        app.activeSprite = new_spr
+                        app.command.AutocropSprite()
+                    end
+                    
+                    if merge_new or export_animation then
+                        table.insert(sprites_list, new_spr)
+                    end
 
-                -- Save the new sprite
-                if export_files then
-                    local filename = string.format("%s%d_%d.png", prefix, r + 1, c + 1)
-                    local full_path = outdir .. "/" .. filename
-                    new_spr:saveAs(full_path)
-                end
+                    -- Save the new sprite
+                    if export_files then
+                        local filename = string.format("%s%d_%d.png", prefix, r + 1, c + 1)
+                        local full_path = outdir .. "/" .. filename
+                        new_spr:saveAs(full_path)
+                    end
 
-                if not (merge_new or export_animation) then
-                    new_spr:close()
+                    if not (merge_new or export_animation) then
+                        new_spr:close()
+                    end
                 end
             end
         end
@@ -341,6 +349,10 @@ dialog:number{ id="new_rows", label="  M Rows:", text="1", visible=false }
 dialog:number{ id="new_cols", label="  N Cols:", text="45", visible=false }
 
 dialog:check{ id="export_animation", label="Export as Animation Frames", selected=false }
+
+dialog:separator{ text="Range (for Merge/Animation)" }
+dialog:number{ id="range_from", label="  From Frame:", text="1" }
+dialog:number{ id="range_end", label="  End Frame:", text="45" }
 
 dialog:separator{ text="Common" }
 dialog:check{ id="trim", label="Trim Transparent Borders", selected=true }
